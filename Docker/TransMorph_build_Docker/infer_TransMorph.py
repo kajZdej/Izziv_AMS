@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from natsort import natsorted
 import nibabel as nib
 import json
-from torch.utils.data import Dataset
+from torch.data import Dataset
 from argparse import ArgumentParser
 from scipy.ndimage import zoom
 import ants
