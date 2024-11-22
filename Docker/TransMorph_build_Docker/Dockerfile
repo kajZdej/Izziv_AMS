@@ -4,7 +4,7 @@ RUN python -m pip install --user -U pip
 
 RUN mkdir -p /input /output
 
-#COPY ./pretrained_weights pretrained_weights/
+COPY ./pretrained_weights pretrained_weights/
 COPY ./requirements.txt .
 COPY ./infer_TransMorph.py .
 COPY ./TransMorph.py .
