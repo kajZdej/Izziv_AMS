@@ -3,3 +3,4 @@
  - ni šlo skozi.
  - dodajam poiskusne datoteke
  - poiskusil sem še eno kodo naredit
+ - dodal sem mapo za datoteke in jo izključil iz git_push
