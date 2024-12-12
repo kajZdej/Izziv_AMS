@@ -13,6 +13,7 @@ from natsort import natsorted
 from models.TransMorph import CONFIGS as CONFIGS_TM
 import models.TransMorph as TransMorph
 
+# Logger class to log output to a file
 class Logger(object):
     def __init__(self, save_dir):
         self.terminal = sys.stdout
@@ -26,31 +27,42 @@ class Logger(object):
         pass
 
 def main():
+    # Set batch size for training
     batch_size = 1
+    
+    # Directories for training and validation data
     train_dir = 'D:/DATA/OASIS/All/'
     val_dir = 'D:/DATA/OASIS/Test/'
-    weights = [1, 1, 1] # loss weights
+    
+    # Loss weights
+    weights = [1, 1, 1]
+    
+    # Directory to save model and logs
     save_dir = 'TransMorph_ncc_{}_dsc{}_diffusion_{}/'.format(weights[0], weights[1], weights[2])
     if not os.path.exists('experiments/'+save_dir):
         os.makedirs('experiments/'+save_dir)
     if not os.path.exists('logs/'+save_dir):
         os.makedirs('logs/'+save_dir)
+    
+    # Redirect stdout to log file
     sys.stdout = Logger('logs/'+save_dir)
-    lr = 0.0001 # learning rate
+    
+    # Learning rate
+    lr = 0.0001
+    
+    # Epoch settings
     epoch_start = 0
-    max_epoch = 500 #max traning epoch
-    cont_training = False #if continue training
+    max_epoch = 500
+    
+    # Continue training from a checkpoint
+    cont_training = False
 
-    '''
-    Initialize model
-    '''
+    # Initialize model
     config = CONFIGS_TM['TransMorph-Large']
     model = TransMorph.TransMorph(config)
     model.cuda()
 
-    '''
-    Initialize spatial transformation function
-    '''
+    # Initialize spatial transformation function
     reg_model = utils.register_model(config.img_size, 'nearest')
     reg_model.cuda()
     reg_model_bilin = utils.register_model(config.img_size, 'bilinear')
