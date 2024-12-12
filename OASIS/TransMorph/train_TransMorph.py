@@ -31,21 +31,21 @@ def main():
     batch_size = 1
     
     # Directories for training and validation data
-    train_dir = 'C:/Users/User/Documents/AMS/pomozn_dat/OASIS_L2R_2021_task03/All/'
-    val_dir = 'C:/Users/User/Documents/AMS/pomozn_dat/OASIS_L2R_2021_task03/Test/'
+    train_dir = '/media/FastDataMama/anton/OASIS_L2R_2021_task03/All/'
+    val_dir = '/media/FastDataMama/anton/OASIS_L2R_2021_task03/Test/'
     
     # Loss weights
     weights = [1, 1, 1]
     
     # Directory to save model and logs
     save_dir = 'TransMorph_ncc_{}_dsc{}_diffusion_{}/'.format(weights[0], weights[1], weights[2])
-    if not os.path.exists('C:/Users/User/Documents/AMS/pomozn_dat/'+save_dir):
-        os.makedirs('C:/Users/User/Documents/AMS/pomozn_dat/'+save_dir)
-    if not os.path.exists('C:/Users/User/Documents/AMS/pomozn_dat/'+save_dir):
-        os.makedirs('C:/Users/User/Documents/AMS/pomozn_dat/'+save_dir)
+    if not os.path.exists('/media/FastDataMama/anton/'+save_dir):
+        os.makedirs('/media/FastDataMama/anton/'+save_dir)
+    if not os.path.exists('/media/FastDataMama/anton/'+save_dir):
+        os.makedirs('/media/FastDataMama/anton/'+save_dir)
     
     # Redirect stdout to log file
-    sys.stdout = Logger('logs/'+save_dir)
+    sys.stdout = Logger('/media/FastDataMama/anton/'+save_dir)
     
     # Learning rate
     lr = 0.0001
