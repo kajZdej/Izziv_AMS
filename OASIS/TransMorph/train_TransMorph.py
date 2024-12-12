@@ -31,18 +31,18 @@ def main():
     batch_size = 1
     
     # Directories for training and validation data
-    train_dir = 'D:/DATA/OASIS/All/'
-    val_dir = 'D:/DATA/OASIS/Test/'
+    train_dir = 'C:/Users/User/Documents/AMS/pomozn_dat/OASIS_L2R_2021_task03/All/'
+    val_dir = 'C:/Users/User/Documents/AMS/pomozn_dat/OASIS_L2R_2021_task03/Test/'
     
     # Loss weights
     weights = [1, 1, 1]
     
     # Directory to save model and logs
     save_dir = 'TransMorph_ncc_{}_dsc{}_diffusion_{}/'.format(weights[0], weights[1], weights[2])
-    if not os.path.exists('experiments/'+save_dir):
-        os.makedirs('experiments/'+save_dir)
-    if not os.path.exists('logs/'+save_dir):
-        os.makedirs('logs/'+save_dir)
+    if not os.path.exists('C:/Users/User/Documents/AMS/pomozn_dat/'+save_dir):
+        os.makedirs('C:/Users/User/Documents/AMS/pomozn_dat/'+save_dir)
+    if not os.path.exists('C:/Users/User/Documents/AMS/pomozn_dat/'+save_dir):
+        os.makedirs('C:/Users/User/Documents/AMS/pomozn_dat/'+save_dir)
     
     # Redirect stdout to log file
     sys.stdout = Logger('logs/'+save_dir)
@@ -52,7 +52,7 @@ def main():
     
     # Epoch settings
     epoch_start = 0
-    max_epoch = 500
+    max_epoch = 2
     
     # Continue training from a checkpoint
     cont_training = False
