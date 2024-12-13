@@ -12,12 +12,12 @@ import models.TransMorph as TransMorph
 from scipy.ndimage.interpolation import map_coordinates, zoom
 
 def main():
-    test_dir = 'D:/DATA/OASIS/Test/'
-    save_dir = 'D:/DATA/OASIS/Submit/submission/task_03/'
+    test_dir = '/media/FastDataMama/anton/OASIS_L2R_2021_task03/Test/'
+    save_dir = '/media/FastDataMama/anton/OASIS_L2R_2021_task03/Output'
     model_idx = -1
     weights = [1, 1, 1]
-    model_folder = 'TransMorphLarge_ncc_{}_dsc_{}_diffusion_{}/'.format(weights[0], weights[1], weights[2])
-    model_dir = 'experiments/' + model_folder
+    model_folder = 'TransMorph_ncc_{}_dsc_{}_diffusion_{}/'.format(weights[0], weights[1], weights[2])
+    model_dir = '/home/antonb/Izziv_AMS/logs/' + model_folder
     config = CONFIGS_TM['TransMorph-Large']
     model = TransMorph.TransMorph(config)
     best_model = torch.load(model_dir + natsorted(os.listdir(model_dir))[model_idx])['state_dict']

@@ -38,7 +38,7 @@ def main():
     weights = [1, 1, 1]
     
     # Directory to save model and logs
-    save_dir = 'TransMorph_ncc_{}_dsc{}_diffusion_{}/'.format(weights[0], weights[1], weights[2])
+    save_dir = 'TransMorph_ncc_{}_dsc_{}_diffusion_{}/'.format(weights[0], weights[1], weights[2])
     if not os.path.exists('/media/FastDataMama/anton/'+save_dir):
         os.makedirs('/media/FastDataMama/anton/'+save_dir)
     if not os.path.exists('/media/FastDataMama/anton/'+save_dir):
@@ -52,13 +52,13 @@ def main():
     
     # Epoch settings
     epoch_start = 0
-    max_epoch = 2
+    max_epoch = 5
     
     # Continue training from a checkpoint
     cont_training = False
 
     # Initialize model
-    config = CONFIGS_TM['TransMorph-Large']
+    config = CONFIGS_TM['TransMorph']
     model = TransMorph.TransMorph(config)
     model.cuda()
 
