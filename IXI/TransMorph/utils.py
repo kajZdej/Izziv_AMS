@@ -171,7 +171,7 @@ def process_label():
                           63, 72, 77, 80, 85, 251, 252, 253, 254, 255]
 
 
-    file1 = open('label_info.txt', 'r')
+    file1 = open('/home/antonb/Izziv_AMS/IXI/TransMorph/label_info.txt', 'r')
     Lines = file1.readlines()
     dict = {}
     seg_i = 0

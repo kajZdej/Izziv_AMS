@@ -37,9 +37,9 @@ def main():
     if not os.path.exists('logs/'+save_dir):
         os.makedirs('logs/'+save_dir)
     sys.stdout = Logger('logs/'+save_dir)
-    lr = 0.0001 # learning rate
+    lr = 0.0005 # learning rate
     epoch_start = 0
-    max_epoch = 500 #max traning epoch
+    max_epoch = 5 #max traning epoch
     cont_training = False #if continue training
 
     '''
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     '''
     GPU configuration
     '''
-    GPU_iden = 1
+    GPU_iden = 0
     GPU_num = torch.cuda.device_count()
     print('Number of GPU: ' + str(GPU_num))
     for GPU_idx in range(GPU_num):
