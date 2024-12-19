@@ -52,10 +52,10 @@ def show_slices(slices):
     for i, slice in enumerate(slices):
         axes[i].imshow(slice.T, cmap="gray", origin="lower")
         
-    plt.savefig('output_image2.png')
+    plt.savefig('output_image4.png')
 
 # Load the .pkl file
-file_path = '/media/FastDataMama/anton/Release_06_12_23/pkl_imgs/ThoraxCBCT_0005_0000.pkl'
+file_path = '/media/FastDataMama/anton/pkl_testdata/Test/subject_3.pkl'
 with open(file_path, 'rb') as f:
     data = pickle.load(f)
 
@@ -64,16 +64,16 @@ with open(file_path, 'rb') as f:
 data = tuple(data)
 print(type(data))
 if isinstance(data, tuple):
-    data = data[0]  # Adjust this based on the actual structure of your .pkl file
+    data = np.array(data)  # Adjust this based on the actual structure of your .pkl file
 
 # Ensure data is a numpy array
 if not isinstance(data, np.ndarray):
     raise ValueError("The loaded data is not a numpy array")
 
 # Select slices to display
-slice_0 = data[:, :, data.shape[2] // 2]
-slice_1 = data[:, data.shape[1] // 2, :]
-slice_2 = data[data.shape[0] // 2, :, :]
+slice_0 = data[0,:, :, data.shape[2] // 2]
+slice_1 = data[0,:, data.shape[1] // 2, :]
+slice_2 = data[0,data.shape[0] // 2, :, :]
 
 # Display the slices
 show_slices([slice_0, slice_1, slice_2])

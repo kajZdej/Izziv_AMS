@@ -68,5 +68,29 @@ downsampling_factor = 2  # Reduce each dimension by half
 pkl_folder = '/media/FastDataMama/anton/Release_06_12_23/pkl_imgs/'
 
 
+data1 = nib.load('/media/FastDataMama/anton/Release_06_12_23/imagesTr/ThoraxCBCT_0003_0002.nii.gz')
+
+data2 = '/media/FastDataMama/anton/Release_06_12_23/atlas_pkl/ThoraxCBCT_0003_0002.pkl'
+with open(data2, 'rb') as f:
+    data2 = pickle.load(f)
+data3 = '/media/FastDataMama/anton/pkl_testdata/Test/subject_3.pkl'
+with open(data3, 'rb') as f:
+    data3 = pickle.load(f)
+data3 = np.array(data3)
+
+print(type(data1))
+print(type(data2))
+print(type(data3))
+
+print(data1.shape)
+print(data2.shape)
+print(data3.shape)
+
+print(data1.header)
+print('----------------------')
+print(data2[0:10,:,:])
+print('----------------------')
+print(data3[:,0:10,:,:])
+
 #downsample_nii(input_folder, output_folder, downsampling_factor)
-convert_nii_to_pkl(output_folder, pkl_folder)
+#convert_nii_to_pkl(output_folder, pkl_folder)
