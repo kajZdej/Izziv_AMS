@@ -31,8 +31,8 @@ def main():
     batch_size = 1
     
     # Directories for training and validation data
-    train_dir = '/media/FastDataMama/anton/OASIS_L2R_2021_task03/All/'
-    val_dir = '/media/FastDataMama/anton/OASIS_L2R_2021_task03/Test/'
+    train_dir = '/media/FastDataMama/anton/Release_06_12_23/pkl_imgs/'
+    val_dir = '/media/FastDataMama/anton/Release_06_12_23/val_pkl/'
     
     # Loss weights
     weights = [1, 1, 1]

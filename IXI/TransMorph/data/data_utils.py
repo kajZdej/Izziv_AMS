@@ -35,7 +35,11 @@ def sample(x, size):
 
 def pkload(fname):
     with open(fname, 'rb') as f:
-        return pickle.load(f)
+        data = pickle.load(f)
+        if isinstance(data, tuple):
+            return data
+        else:
+            return tuple(data)
 
 
 _shape = (240, 240, 155)

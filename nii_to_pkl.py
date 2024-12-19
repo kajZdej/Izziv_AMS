@@ -2,6 +2,7 @@ import os
 import nibabel as nib
 import numpy as np
 import pickle
+import matplotlib.pyplot as plt
 
 def convert_nii_to_pkl(input_dir, output_dir):
     if not os.path.exists(output_dir):
@@ -21,9 +22,58 @@ def convert_nii_to_pkl(input_dir, output_dir):
 
             print(f'Converted {file_name} to {pkl_path}')
 
-# Define input and output directories
-input_dir = '/media/FastDataMama/anton/Release_06_12_23/masksTr'
-output_dir = '/media/FastDataMama/anton/Release_06_12_23/atlas_pkl'
 
-# Run the conversion
-convert_nii_to_pkl(input_dir, output_dir)
+def show_slices(slices):
+    fig, axes = plt.subplots(1, len(slices))
+
+    for i, slice in enumerate(slices):
+        axes[i].imshow(slice.T, cmap="gray", origin="lower")
+    plt.savefig('output_image2.png')
+    #plt.show()
+    
+# Load the .nii.gz file
+file_path = '/media/FastDataMama/anton/Release_06_12_23/imagesTr/ThoraxCBCT_0000_0000.nii.gz'
+img = nib.load(file_path)
+data = img.get_fdata()
+print(type(data))
+
+# Select slices to display
+slice_0 = data[:, :, data.shape[2] // 2]
+slice_1 = data[:, data.shape[1] // 2, :]
+slice_2 = data[data.shape[0] // 2, :, :]
+
+# Display the slices
+#show_slices([slice_0, slice_1, slice_2])
+
+
+
+def show_slices(slices):
+    fig, axes = plt.subplots(1, len(slices))
+    for i, slice in enumerate(slices):
+        axes[i].imshow(slice.T, cmap="gray", origin="lower")
+        
+    plt.savefig('output_image2.png')
+
+# Load the .pkl file
+file_path = '/media/FastDataMama/anton/Release_06_12_23/pkl_imgs/ThoraxCBCT_0005_0000.pkl'
+with open(file_path, 'rb') as f:
+    data = pickle.load(f)
+
+
+# Check the contents of the .pkl file
+data = tuple(data)
+print(type(data))
+if isinstance(data, tuple):
+    data = data[0]  # Adjust this based on the actual structure of your .pkl file
+
+# Ensure data is a numpy array
+if not isinstance(data, np.ndarray):
+    raise ValueError("The loaded data is not a numpy array")
+
+# Select slices to display
+slice_0 = data[:, :, data.shape[2] // 2]
+slice_1 = data[:, data.shape[1] // 2, :]
+slice_2 = data[data.shape[0] // 2, :, :]
+
+# Display the slices
+show_slices([slice_0, slice_1, slice_2])
