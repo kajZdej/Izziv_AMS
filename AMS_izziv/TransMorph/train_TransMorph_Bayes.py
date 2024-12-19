@@ -10,8 +10,8 @@ from torch import optim
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from natsort import natsorted
-from models.TransMorph import CONFIGS as CONFIGS_TM
-import models.TransMorph as TransMorph
+from models.TransMorph_Bayes import CONFIGS as CONFIGS_TM
+import models.TransMorph_Bayes as TransMorph_Bayes
 
 class Logger(object):
     def __init__(self, save_dir):
@@ -27,26 +27,26 @@ class Logger(object):
 
 def main():
     batch_size = 1
-    atlas_dir = '/media/FastDataMama/anton/Release_06_12_23/val_pkl/ThoraxCBCT_0000_0000.pkl'
-    train_dir = '/media/FastDataMama/anton/Release_06_12_23/pkl_imgs/'
-    val_dir = '/media/FastDataMama/anton/Release_06_12_23/val_pkl'
-    weights = [1, 1] # loss weights
-    save_dir = 'TransMorph_ncc_{}_diffusion_{}/'.format(weights[0], weights[1])
+    atlas_dir = 'Path_to_IXI_data/atlas.pkl'
+    train_dir = 'Path_to_IXI_data/Train/'
+    val_dir = 'Path_to_IXI_data/Val/'
+    weights = [1, 1]  # loss weights
+    save_dir = 'TransMorphBayes_ncc_{}_diffusion_{}/'.format(weights[0], weights[1])
     if not os.path.exists('experiments/'+save_dir):
         os.makedirs('experiments/'+save_dir)
     if not os.path.exists('logs/'+save_dir):
         os.makedirs('logs/'+save_dir)
     sys.stdout = Logger('logs/'+save_dir)
-    lr = 0.0005 # learning rate
+    lr = 0.0001 # learning rate
     epoch_start = 0
-    max_epoch = 5 #max traning epoch
+    max_epoch = 500 #max traning epoch
     cont_training = False #if continue training
 
     '''
     Initialize model
     '''
-    config = CONFIGS_TM['TransMorph']
-    model = TransMorph.TransMorph(config)
+    config = CONFIGS_TM['TransMorphBayes']
+    model = TransMorph_Bayes.TransMorphBayes(config)
     model.cuda()
 
     '''
@@ -61,11 +61,11 @@ def main():
     If continue from previous training
     '''
     if cont_training:
-        epoch_start = 201
+        epoch_start = 218
         model_dir = 'experiments/'+save_dir
         updated_lr = round(lr * np.power(1 - (epoch_start) / max_epoch,0.9),8)
-        best_model = torch.load(model_dir + natsorted(os.listdir(model_dir))[-1])['state_dict']
-        print('Model: {} loaded!'.format(natsorted(os.listdir(model_dir))[-1]))
+        best_model = torch.load(model_dir + natsorted(os.listdir(model_dir))[-2])['state_dict']
+        print('Model: {} loaded!'.format(natsorted(os.listdir(model_dir))[-2]))
         model.load_state_dict(best_model)
     else:
         updated_lr = lr
@@ -78,7 +78,8 @@ def main():
                                          ])
 
     val_composed = transforms.Compose([trans.Seg_norm(), #rearrange segmentation label to 1 to 46
-                                       trans.NumpyType((np.float32, np.int16))])
+                                       trans.NumpyType((np.float32, np.int16)),
+                                        ])
     train_set = datasets.IXIBrainDataset(glob.glob(train_dir + '*.pkl'), atlas_dir, transforms=train_composed)
     val_set = datasets.IXIBrainInferDataset(glob.glob(val_dir + '*.pkl'), atlas_dir, transforms=val_composed)
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
@@ -113,7 +114,6 @@ def main():
                 loss_vals.append(curr_loss)
                 loss += curr_loss
             loss_all.update(loss.item(), y.numel())
-            # compute gradient and do SGD step
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -136,9 +136,14 @@ def main():
                 y_seg = data[3]
                 x_in = torch.cat((x, y), dim=1)
                 grid_img = mk_grid_img(8, 1, config.img_size)
-                output = model(x_in)
-                def_out = reg_model([x_seg.cuda().float(), output[1].cuda()])
-                def_grid = reg_model_bilin([grid_img.float(), output[1].cuda()])
+                outputs, flows, errs = utils.get_mc_preds_w_errors(model, x_in, y)
+                min_err_idx = np.argmin(errs)
+                output = flows[min_err_idx]
+                #output = torch.mean(torch.cat(flows, dim=0)[:], dim=0, keepdim=True)
+                epi = torch.var(torch.cat(outputs, dim=0)[:], dim=0, keepdim=True)
+                uncert = epi
+                def_out = reg_model([x_seg.cuda().float(), output.cuda()])
+                def_grid = reg_model_bilin([grid_img.float(), output.cuda()])
                 dsc = utils.dice_val_VOI(def_out.long(), y_seg.long())
                 eval_dsc.update(dsc.item(), x.size(0))
                 print(eval_dsc.avg)
@@ -148,13 +153,14 @@ def main():
             'state_dict': model.state_dict(),
             'best_dsc': best_dsc,
             'optimizer': optimizer.state_dict(),
-        }, save_dir='experiments/'+save_dir, filename='dsc{:.3f}.pth.tar'.format(eval_dsc.avg))
+        }, save_dir='experiments/' + save_dir, filename='dsc{:.3f}.pth.tar'.format(eval_dsc.avg))
         writer.add_scalar('DSC/validate', eval_dsc.avg, epoch)
         plt.switch_backend('agg')
         pred_fig = comput_fig(def_out)
         grid_fig = comput_fig(def_grid)
         x_fig = comput_fig(x_seg)
         tar_fig = comput_fig(y_seg)
+        var_fig = comput_fig(uncert)
         writer.add_figure('Grid', grid_fig, epoch)
         plt.close(grid_fig)
         writer.add_figure('input', x_fig, epoch)
@@ -162,6 +168,8 @@ def main():
         writer.add_figure('ground truth', tar_fig, epoch)
         plt.close(tar_fig)
         writer.add_figure('prediction', pred_fig, epoch)
+        plt.close(pred_fig)
+        writer.add_figure('uncertainty', var_fig, epoch)
         plt.close(pred_fig)
         loss_all.reset()
     writer.close()
@@ -201,7 +209,7 @@ if __name__ == '__main__':
     '''
     GPU configuration
     '''
-    GPU_iden = 0
+    GPU_iden = 1
     GPU_num = torch.cuda.device_count()
     print('Number of GPU: ' + str(GPU_num))
     for GPU_idx in range(GPU_num):

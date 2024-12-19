@@ -7,11 +7,10 @@ import numpy as np
 import torch
 from torchvision import transforms
 from torch import optim
-import torch.nn as nn
 import matplotlib.pyplot as plt
 from natsort import natsorted
-from models.TransMorph import CONFIGS as CONFIGS_TM
-import models.TransMorph as TransMorph
+from models.TransMorph_diff import TransMorphDiff, Bilinear
+from models.TransMorph_diff import CONFIGS as CONFIGS_TM
 
 class Logger(object):
     def __init__(self, save_dir):
@@ -27,45 +26,48 @@ class Logger(object):
 
 def main():
     batch_size = 1
-    atlas_dir = '/media/FastDataMama/anton/Release_06_12_23/val_pkl/ThoraxCBCT_0000_0000.pkl'
-    train_dir = '/media/FastDataMama/anton/Release_06_12_23/pkl_imgs/'
-    val_dir = '/media/FastDataMama/anton/Release_06_12_23/val_pkl'
-    weights = [1, 1] # loss weights
-    save_dir = 'TransMorph_ncc_{}_diffusion_{}/'.format(weights[0], weights[1])
+    atlas_dir = 'Path_to_IXI_data/atlas.pkl'
+    train_dir = 'Path_to_IXI_data/Train/'
+    val_dir = 'Path_to_IXI_data/Val/'
+    save_dir = 'TransMorphDiffOrgRes/'
     if not os.path.exists('experiments/'+save_dir):
         os.makedirs('experiments/'+save_dir)
-    if not os.path.exists('logs/'+save_dir):
-        os.makedirs('logs/'+save_dir)
-    sys.stdout = Logger('logs/'+save_dir)
-    lr = 0.0005 # learning rate
+    if not os.path.exists('logs/' + save_dir):
+        os.makedirs('logs/' + save_dir)
+    sys.stdout = Logger('logs/' + save_dir)
+    lr = 0.0001
     epoch_start = 0
-    max_epoch = 5 #max traning epoch
-    cont_training = False #if continue training
-
-    '''
-    Initialize model
-    '''
-    config = CONFIGS_TM['TransMorph']
-    model = TransMorph.TransMorph(config)
-    model.cuda()
+    max_epoch = 500
+    cont_training = False
 
     '''
     Initialize spatial transformation function
     '''
-    reg_model = utils.register_model(config.img_size, 'nearest')
-    reg_model.cuda()
-    reg_model_bilin = utils.register_model(config.img_size, 'bilinear')
-    reg_model_bilin.cuda()
+    reg_model = Bilinear(zero_boundary=True, mode='nearest').cuda()
+    for param in reg_model.parameters():
+        param.requires_grad = False
+        param.volatile = True
+    reg_model_bilin = Bilinear(zero_boundary=True, mode='bilinear').cuda()
+    for param in reg_model_bilin.parameters():
+        param.requires_grad = False
+        param.volatile = True
+
+    '''
+    Initialize model
+    '''
+    config = CONFIGS_TM['TransMorphDiff-Org-Res']
+    model = TransMorphDiff(config)
+    model.cuda()
 
     '''
     If continue from previous training
     '''
     if cont_training:
-        epoch_start = 201
+        epoch_start = 189
         model_dir = 'experiments/'+save_dir
         updated_lr = round(lr * np.power(1 - (epoch_start) / max_epoch,0.9),8)
-        best_model = torch.load(model_dir + natsorted(os.listdir(model_dir))[-1])['state_dict']
-        print('Model: {} loaded!'.format(natsorted(os.listdir(model_dir))[-1]))
+        best_model = torch.load(model_dir + natsorted(os.listdir(model_dir))[-2])['state_dict']
+        print('Model: {} loaded!'.format(natsorted(os.listdir(model_dir))[-2]))
         model.load_state_dict(best_model)
     else:
         updated_lr = lr
@@ -78,18 +80,17 @@ def main():
                                          ])
 
     val_composed = transforms.Compose([trans.Seg_norm(), #rearrange segmentation label to 1 to 46
-                                       trans.NumpyType((np.float32, np.int16))])
+                                       trans.NumpyType((np.float32, np.int16)),
+                                        ])
+
     train_set = datasets.IXIBrainDataset(glob.glob(train_dir + '*.pkl'), atlas_dir, transforms=train_composed)
     val_set = datasets.IXIBrainInferDataset(glob.glob(val_dir + '*.pkl'), atlas_dir, transforms=val_composed)
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val_set, batch_size=1, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
-
-    optimizer = optim.Adam(model.parameters(), lr=updated_lr, weight_decay=0, amsgrad=True)
-    criterion = losses.NCC_vxm()
-    criterions = [criterion]
-    criterions += [losses.Grad3d(penalty='l2')]
+    #optimizer = optim.Adam(model.parameters(), lr=updated_lr, weight_decay=0, amsgrad=True)
+    optimizer = optim.Adamax(model.parameters(), lr=updated_lr, weight_decay=0)
     best_dsc = 0
-    writer = SummaryWriter(log_dir='logs/'+save_dir)
+    writer = SummaryWriter(log_dir='logs/' + save_dir)
     for epoch in range(epoch_start, max_epoch):
         print('Training Starts')
         '''
@@ -98,27 +99,28 @@ def main():
         loss_all = utils.AverageMeter()
         idx = 0
         for data in train_loader:
+            loss_sim_iter = 0
+            loss_reg_iter = 0
             idx += 1
             model.train()
             adjust_learning_rate(optimizer, epoch, max_epoch, lr)
             data = [t.cuda() for t in data]
             x = data[0]
             y = data[1]
-            x_in = torch.cat((x,y), dim=1)
-            output = model(x_in)
-            loss = 0
-            loss_vals = []
-            for n, loss_function in enumerate(criterions):
-                curr_loss = loss_function(output[n], y) * weights[n]
-                loss_vals.append(curr_loss)
-                loss += curr_loss
-            loss_all.update(loss.item(), y.numel())
+            output = model((x, y))
+            loss_sim = model.get_sim_loss()
+            loss_sim_iter += loss_sim
+            loss_reg = model.scale_reg_loss()
+            loss_reg_iter += loss_reg
+            loss = loss_sim + loss_reg
             # compute gradient and do SGD step
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            loss_all.update(loss.item(), y.numel())
 
-            print('Iter {} of {} loss {:.4f}, Img Sim: {:.6f}, Reg: {:.6f}'.format(idx, len(train_loader), loss.item(), loss_vals[0].item(), loss_vals[1].item()))
+            print('Iter {} of {} loss {:.4f}, Img Sim: {:.6f}, Reg: {:.6f}'.format(idx, len(train_loader), loss.item(), loss_sim_iter.item(), loss_reg_iter.item()))
+            del output
 
         writer.add_scalar('Loss/train', loss_all.avg, epoch)
         print('Epoch {} loss {:.4f}'.format(epoch, loss_all.avg))
@@ -134,11 +136,10 @@ def main():
                 y = data[1]
                 x_seg = data[2]
                 y_seg = data[3]
-                x_in = torch.cat((x, y), dim=1)
                 grid_img = mk_grid_img(8, 1, config.img_size)
-                output = model(x_in)
-                def_out = reg_model([x_seg.cuda().float(), output[1].cuda()])
-                def_grid = reg_model_bilin([grid_img.float(), output[1].cuda()])
+                _, flow, _ = model((x, y))
+                def_out = reg_model(x_seg.float(), flow)
+                def_grid = reg_model_bilin(grid_img.float(), flow)
                 dsc = utils.dice_val_VOI(def_out.long(), y_seg.long())
                 eval_dsc.update(dsc.item(), x.size(0))
                 print(eval_dsc.avg)
@@ -201,7 +202,7 @@ if __name__ == '__main__':
     '''
     GPU configuration
     '''
-    GPU_iden = 0
+    GPU_iden = 1
     GPU_num = torch.cuda.device_count()
     print('Number of GPU: ' + str(GPU_num))
     for GPU_idx in range(GPU_num):

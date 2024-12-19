@@ -57,7 +57,7 @@ def convert_nii_to_pkl(input_dir, output_dir):
             # Create a corresponding .pkl file
             pkl_path = os.path.join(output_dir, file_name.replace('.nii.gz', '.pkl'))
             with open(pkl_path, 'wb') as pkl_file:
-                pickle.dump(img_data, pkl_file)
+                pickle.dump(tuple(img_data), pkl_file)
 
             print(f'Converted {file_name} to {pkl_path}')
 
@@ -68,5 +68,5 @@ downsampling_factor = 2  # Reduce each dimension by half
 pkl_folder = '/media/FastDataMama/anton/Release_06_12_23/pkl_imgs/'
 
 
-downsample_nii(input_folder, output_folder, downsampling_factor)
+#downsample_nii(input_folder, output_folder, downsampling_factor)
 convert_nii_to_pkl(output_folder, pkl_folder)
