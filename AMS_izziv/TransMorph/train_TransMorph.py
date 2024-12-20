@@ -2,7 +2,7 @@ from torch.utils.tensorboard import SummaryWriter
 import os, utils, glob, losses
 import sys
 from torch.utils.data import DataLoader
-from data import datasets, trans
+from data import trans
 import numpy as np
 import torch
 from torchvision import transforms
@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from natsort import natsorted
 from models.TransMorph import CONFIGS as CONFIGS_TM
 import models.TransMorph as TransMorph
+from data.datasets import NiiGzDataset
 
 class Logger(object):
     def __init__(self, save_dir):
@@ -27,8 +28,7 @@ class Logger(object):
 
 def main():
     batch_size = 1
-    atlas_dir = '/media/FastDataMama/anton/Release_06_12_23/val_pkl/ThoraxCBCT_0000_0000.pkl'
-    train_dir = '/media/FastDataMama/anton/Release_06_12_23/pkl_imgs/'
+    train_dir = '/media/FastDataMama/anton/Release_06_12_23/imagesTr'
     val_dir = '/media/FastDataMama/anton/Release_06_12_23/val_pkl'
     weights = [1, 1] # loss weights
     save_dir = 'TransMorph_ncc_{}_diffusion_{}/'.format(weights[0], weights[1])
@@ -39,7 +39,7 @@ def main():
     sys.stdout = Logger('logs/'+save_dir)
     lr = 0.0005 # learning rate
     epoch_start = 0
-    max_epoch = 5 #max traning epoch
+    max_epoch = 5 #max training epoch
     cont_training = False #if continue training
 
     '''
@@ -79,8 +79,8 @@ def main():
 
     val_composed = transforms.Compose([trans.Seg_norm(), #rearrange segmentation label to 1 to 46
                                        trans.NumpyType((np.float32, np.int16))])
-    train_set = datasets.IXIBrainDataset(glob.glob(train_dir + '*.pkl'), atlas_dir, transforms=train_composed)
-    val_set = datasets.IXIBrainInferDataset(glob.glob(val_dir + '*.pkl'), atlas_dir, transforms=val_composed)
+    train_set = NiiGzDataset(train_dir, transforms=train_composed)
+    val_set = NiiGzDataset(val_dir, transforms=val_composed)
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val_set, batch_size=1, shuffle=False, num_workers=4, pin_memory=True, drop_last=True)
 
@@ -101,10 +101,10 @@ def main():
             idx += 1
             model.train()
             adjust_learning_rate(optimizer, epoch, max_epoch, lr)
-            data = [t.cuda() for t in data]
-            x = data[0]
-            y = data[1]
-            x_in = torch.cat((x,y), dim=1)
+            data = data.cuda()
+            x = data
+            y = data  # Assuming the target is the same as the input for simplicity
+            x_in = torch.cat((x, y), dim=1)
             output = model(x_in)
             loss = 0
             loss_vals = []
@@ -129,17 +129,15 @@ def main():
         with torch.no_grad():
             for data in val_loader:
                 model.eval()
-                data = [t.cuda() for t in data]
-                x = data[0]
-                y = data[1]
-                x_seg = data[2]
-                y_seg = data[3]
+                data = data.cuda()
+                x = data
+                y = data  # Assuming the target is the same as the input for simplicity
                 x_in = torch.cat((x, y), dim=1)
                 grid_img = mk_grid_img(8, 1, config.img_size)
                 output = model(x_in)
-                def_out = reg_model([x_seg.cuda().float(), output[1].cuda()])
+                def_out = reg_model([x.cuda().float(), output[1].cuda()])
                 def_grid = reg_model_bilin([grid_img.float(), output[1].cuda()])
-                dsc = utils.dice_val_VOI(def_out.long(), y_seg.long())
+                dsc = utils.dice_val_VOI(def_out.long(), y.long())
                 eval_dsc.update(dsc.item(), x.size(0))
                 print(eval_dsc.avg)
         best_dsc = max(eval_dsc.avg, best_dsc)
@@ -153,8 +151,8 @@ def main():
         plt.switch_backend('agg')
         pred_fig = comput_fig(def_out)
         grid_fig = comput_fig(def_grid)
-        x_fig = comput_fig(x_seg)
-        tar_fig = comput_fig(y_seg)
+        x_fig = comput_fig(x)
+        tar_fig = comput_fig(y)
         writer.add_figure('Grid', grid_fig, epoch)
         plt.close(grid_fig)
         writer.add_figure('input', x_fig, epoch)
