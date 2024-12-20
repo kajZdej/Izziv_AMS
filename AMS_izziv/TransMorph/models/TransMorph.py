@@ -812,6 +812,7 @@ class TransMorph(nn.Module):
         TransMorph Model
         '''
         super(TransMorph, self).__init__()
+        self.c1 = nn.Conv3d(1, 48, kernel_size=3, stride=1, padding=1)
         if_convskip = config.if_convskip
         self.if_convskip = if_convskip
         if_transskip = config.if_transskip

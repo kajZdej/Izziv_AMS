@@ -6,6 +6,37 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
+import os
+import glob
+import nibabel as nib
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+
+class NiiGzDataset(Dataset):
+    def __init__(self, data_dir, transforms=None):
+        self.data_dir = data_dir
+        self.transforms = transforms
+        self.data_files = glob.glob(os.path.join(data_dir, '*.nii.gz'))
+
+    def __len__(self):
+        return len(self.data_files)
+
+    def __getitem__(self, idx):
+        # Load the .nii.gz file
+        nii_path = self.data_files[idx]
+        nii_img = nib.load(nii_path)
+        img_data = nii_img.get_fdata()
+
+        # Apply transformations if any
+        if self.transforms:
+            img_data = self.transforms(img_data)
+
+        # Convert to PyTorch tensor
+        img_data = torch.tensor(img_data, dtype=torch.float32)
+
+        return img_data
+
 
 class IXIBrainDataset(Dataset):
     def __init__(self, data_path, atlas_path, transforms):

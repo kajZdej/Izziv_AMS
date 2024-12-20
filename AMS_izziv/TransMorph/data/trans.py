@@ -129,7 +129,7 @@ class Flip(Base):
     def __str__(self):
         return 'Flip(axis={})'.format(self.axis)
 
-class RandomFlip(Base):
+"""class RandomFlip(Base):
     # mirror flip across all x,y,z
     def __init__(self,axis=0):
         # assert axis == (1,2,3) # For both data and label, it has to specify the axis.
@@ -151,7 +151,37 @@ class RandomFlip(Base):
             img = np.flip(img,axis=self.axis[1])
         if self.z_buffer:
             img = np.flip(img,axis=self.axis[2])
+        return img"""
+
+
+
+class RandomFlip:
+    def __init__(self, axis=0):
+        self.axis = axis
+
+    def __call__(self, img):
+        return self.tf(img)
+
+    def tf(self, img):
+        if isinstance(img, np.ndarray):
+            if img.ndim == 3:
+                return np.flip(img, axis=self.axis)
+            elif img.ndim == 4:
+                return np.flip(img, axis=self.axis[2])
         return img
+
+class NumpyType:
+    def __init__(self, types):
+        self.types = types
+
+    def __call__(self, img):
+        return self.tf(img)
+
+    def tf(self, img):
+        if isinstance(img, list):
+            return [img[0].astype(self.types[0]), img[1].astype(self.types[1])]
+        else:
+            return img.astype(self.types)
 
 
 class RandSelect(Base):
@@ -473,7 +503,7 @@ class TensorType(Base):
         return 'TensorType(({}))'.format(s)
 
 
-class NumpyType(Base):
+"""class NumpyType(Base):
     def __init__(self, types, num=-1):
         self.types = types # ('float32', 'int64')
         self.num = num
@@ -486,7 +516,7 @@ class NumpyType(Base):
 
     def __str__(self):
         s = ', '.join([str(s) for s in self.types])
-        return 'NumpyType(({}))'.format(s)
+        return 'NumpyType(({}))'.format(s)"""
 
 
 class Normalize(Base):
