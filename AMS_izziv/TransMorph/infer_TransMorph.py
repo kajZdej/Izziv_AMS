@@ -18,8 +18,10 @@ def save_nifti(data, filename, affine=np.eye(4)):
     nib.save(img, filename)
 
 def main():
+    
     atlas_dir = '/path/to/atlas.nii.gz'  # Update with your .nii.gz atlas path
     test_dir = '/path/to/test_data/'  # Update with your directory containing .nii.gz files
+    output_dir = '/path/to/ouput/dir/' 
     model_idx = -1
     weights = [1, 1]
     model_folder = 'TransMorph_ncc_{}_diffusion_{}/'.format(weights[0], weights[1])
@@ -93,7 +95,7 @@ def main():
             stdy_idx += 1
 
             # Save the transformed image
-            save_nifti(x_def.detach().cpu().numpy()[0, 0, :, :, :], f'transformed_{stdy_idx}.nii.gz')
+            save_nifti(x_def.detach().cpu().numpy()[0, 0, :, :, :], os.path.join(output_dir, f'transformed_{stdy_idx}.nii.gz'))
 
         print('Deformed DSC: {:.3f} +- {:.3f}, Affine DSC: {:.3f} +- {:.3f}'.format(eval_dsc_def.avg,
                                                                                     eval_dsc_def.std,
