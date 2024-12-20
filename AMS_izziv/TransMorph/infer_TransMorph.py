@@ -95,6 +95,8 @@ def main():
             stdy_idx += 1
 
             # Save the transformed image
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
             save_nifti(x_def.detach().cpu().numpy()[0, 0, :, :, :], os.path.join(output_dir, f'transformed_{stdy_idx}.nii.gz'))
 
         print('Deformed DSC: {:.3f} +- {:.3f}, Affine DSC: {:.3f} +- {:.3f}'.format(eval_dsc_def.avg,
