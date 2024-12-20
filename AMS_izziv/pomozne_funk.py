@@ -78,13 +78,20 @@ with open(data3, 'rb') as f:
     data3 = pickle.load(f)
 data3 = np.array(data3)
 
+data4 = '/media/FastDataMama/anton/OASIS_L2R_2021_task03/All/p_0015.pkl'
+with open(data4, 'rb') as f:
+    data34= pickle.load(f)
+data4 = np.array(data3)
+
 print(type(data1))
 print(type(data2))
 print(type(data3))
+print(type(data4))
 
 print(data1.shape)
 print(data2.shape)
 print(data3.shape)
+print(data4.shape)
 
 print(data1.header)
 print('----------------------')
