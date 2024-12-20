@@ -17,7 +17,6 @@ def save_nifti(data, filename, affine=np.eye(4)):
     img = nib.Nifti1Image(data, affine)
     nib.save(img, filename)
 
-
 def main():
     atlas_dir = '/path/to/atlas.nii.gz'  # Update with your .nii.gz atlas path
     test_dir = '/path/to/test_data/'  # Update with your directory containing .nii.gz files
@@ -56,50 +55,51 @@ def main():
     eval_dsc_def = utils.AverageMeter()
     eval_dsc_raw = utils.AverageMeter()
     eval_det = utils.AverageMeter()
+    
     with torch.no_grad():
-    stdy_idx = 0
-    for data in test_loader:
-        model.eval()
-        data = [t.cuda() for t in data]
-        x = data[0]
-        y = data[1]
-        x_seg = data[2]
-        y_seg = data[3]
+        stdy_idx = 0
+        for data in test_loader:
+            model.eval()
+            data = [t.cuda() for t in data]
+            x = data[0]
+            y = data[1]
+            x_seg = data[2]
+            y_seg = data[3]
 
-        x_in = torch.cat((x,y),dim=1)
-        x_def, flow = model(x_in)
-        x_seg_oh = nn.functional.one_hot(x_seg.long(), num_classes=46)
-        x_seg_oh = torch.squeeze(x_seg_oh, 1)
-        x_seg_oh = x_seg_oh.permute(0, 4, 1, 2, 3).contiguous()
-        x_segs = []
-        for i in range(46):
-            def_seg = reg_model([x_seg_oh[:, i:i + 1, ...].float(), flow.float()])
-            x_segs.append(def_seg)
-        x_segs = torch.cat(x_segs, dim=1)
-        def_out = torch.argmax(x_segs, dim=1, keepdim=True)
-        del x_segs, x_seg_oh
-        tar = y.detach().cpu().numpy()[0, 0, :, :, :]
-        jac_det = utils.jacobian_determinant_vxm(flow.detach().cpu().numpy()[0, :, :, :, :])
-        line = utils.dice_val_substruct(def_out.long(), y_seg.long(), stdy_idx)
-        line = line +','+str(np.sum(jac_det <= 0)/np.prod(tar.shape))
-        csv_writter(line, 'Quantitative_Results/' + csv_name)
-        eval_det.update(np.sum(jac_det <= 0) / np.prod(tar.shape), x.size(0))
-        print('det < 0: {}'.format(np.sum(jac_det <= 0) / np.prod(tar.shape)))
-        dsc_trans = utils.dice_val(def_out.long(), y_seg.long(), 46)
-        dsc_raw = utils.dice_val(x_seg.long(), y_seg.long(), 46)
-        print('Trans dsc: {:.4f}, Raw dsc: {:.4f}'.format(dsc_trans.item(),dsc_raw.item()))
-        eval_dsc_def.update(dsc_trans.item(), x.size(0))
-        eval_dsc_raw.update(dsc_raw.item(), x.size(0))
-        stdy_idx += 1
+            x_in = torch.cat((x,y),dim=1)
+            x_def, flow = model(x_in)
+            x_seg_oh = nn.functional.one_hot(x_seg.long(), num_classes=46)
+            x_seg_oh = torch.squeeze(x_seg_oh, 1)
+            x_seg_oh = x_seg_oh.permute(0, 4, 1, 2, 3).contiguous()
+            x_segs = []
+            for i in range(46):
+                def_seg = reg_model([x_seg_oh[:, i:i + 1, ...].float(), flow.float()])
+                x_segs.append(def_seg)
+            x_segs = torch.cat(x_segs, dim=1)
+            def_out = torch.argmax(x_segs, dim=1, keepdim=True)
+            del x_segs, x_seg_oh
+            tar = y.detach().cpu().numpy()[0, 0, :, :, :]
+            jac_det = utils.jacobian_determinant_vxm(flow.detach().cpu().numpy()[0, :, :, :, :])
+            line = utils.dice_val_substruct(def_out.long(), y_seg.long(), stdy_idx)
+            line = line +','+str(np.sum(jac_det <= 0)/np.prod(tar.shape))
+            csv_writter(line, 'Quantitative_Results/' + csv_name)
+            eval_det.update(np.sum(jac_det <= 0) / np.prod(tar.shape), x.size(0))
+            print('det < 0: {}'.format(np.sum(jac_det <= 0) / np.prod(tar.shape)))
+            dsc_trans = utils.dice_val(def_out.long(), y_seg.long(), 46)
+            dsc_raw = utils.dice_val(x_seg.long(), y_seg.long(), 46)
+            print('Trans dsc: {:.4f}, Raw dsc: {:.4f}'.format(dsc_trans.item(),dsc_raw.item()))
+            eval_dsc_def.update(dsc_trans.item(), x.size(0))
+            eval_dsc_raw.update(dsc_raw.item(), x.size(0))
+            stdy_idx += 1
 
-        # Save the transformed image
-        save_nifti(x_def.detach().cpu().numpy()[0, 0, :, :, :], f'transformed_{stdy_idx}.nii.gz')
+            # Save the transformed image
+            save_nifti(x_def.detach().cpu().numpy()[0, 0, :, :, :], f'transformed_{stdy_idx}.nii.gz')
 
-    print('Deformed DSC: {:.3f} +- {:.3f}, Affine DSC: {:.3f} +- {:.3f}'.format(eval_dsc_def.avg,
-                                                                                eval_dsc_def.std,
-                                                                                eval_dsc_raw.avg,
-                                                                                eval_dsc_raw.std))
-    print('deformed det: {}, std: {}'.format(eval_det.avg, eval_det.std))
+        print('Deformed DSC: {:.3f} +- {:.3f}, Affine DSC: {:.3f} +- {:.3f}'.format(eval_dsc_def.avg,
+                                                                                    eval_dsc_def.std,
+                                                                                    eval_dsc_raw.avg,
+                                                                                    eval_dsc_raw.std))
+        print('deformed det: {}, std: {}'.format(eval_det.avg, eval_det.std))
 
 def csv_writter(line, name):
     with open(name+'.csv', 'a') as file:
@@ -115,10 +115,9 @@ if __name__ == '__main__':
     print('Number of GPU: ' + str(GPU_num))
     for GPU_idx in range(GPU_num):
         GPU_name = torch.cuda.get_device_name(GPU_idx)
-        print('     GPU #' + str(GPU_idx) + ': ' + GPU_name)
+        print('     GPU #' + str(GPU_idx) + ': ' + GPU name)
     torch.cuda.set_device(GPU_iden)
     GPU_avai = torch.cuda.is_available()
     print('Currently using: ' + torch.cuda.get_device_name(GPU_iden))
     print('If the GPU is available? ' + str(GPU_avai))
     main()
-    
