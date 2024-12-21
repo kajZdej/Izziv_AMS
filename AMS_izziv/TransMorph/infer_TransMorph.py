@@ -17,6 +17,10 @@ def save_nifti(data, filename, affine=np.eye(4)):
     img = nib.Nifti1Image(data, affine)
     nib.save(img, filename)
 
+def save_flow(data, filename, affine=np.eye(4)):
+    img = nib.Nifti1Image(data, affine)
+    nib.save(img, filename)
+
 def main():
     
     atlas_dir = '/path/to/atlas.nii.gz'  # Update with your .nii.gz atlas path
